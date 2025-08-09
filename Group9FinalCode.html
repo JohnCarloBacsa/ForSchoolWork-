@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Seat Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #FFFBEF; --grid-line-color: rgba(133, 146, 158, 0.2);
+            --paper-color: #FFFFFF; --text-color: #4A4A4A; --border-color: #D5D8DC;
+            --primary-accent: #E57373; --secondary-accent: #81D4FA; --tertiary-accent: #7D8A97;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: 'Patrick Hand', cursive; font-size: 18px; color: var(--text-color);
+            background-color: var(--bg-color);
+            background-image: linear-gradient(var(--grid-line-color) 1px, transparent 1px), linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px);
+            background-size: 20px 20px; padding: 20px; margin: 0;
+        }
+        h1, h2 { color: var(--text-color); text-align: center; font-size: 2.5em; margin-top: 0; }
+        h2 { text-align: left; font-size: 2em; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+        .container, .classroom-section {
+            background: var(--paper-color); padding: 25px; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07); border: 1px solid #EAECEE;
+            flex: 1; min-width: 300px; margin: 20px auto; max-width: 1200px;
+        }
+        textarea, input[type="number"], input[type="text"] {
+            width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border-color);
+            border-radius: 4px; font-family: inherit; font-size: 1em; background-color: #FDFEFE;
+        }
+        button, .demo-select {
+            color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;
+            margin-right: 10px; margin-bottom: 10px; transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit; font-size: 1em; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #generateSeats { background-color: var(--primary-accent); }
+        .customize-button { background-color: #F8C471; }
+        .demo-select { background-color: var(--secondary-accent); padding: 9px 15px; -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+        #saveLayout, #loadLayout { background-color: var(--tertiary-accent); }
+        #exportPNG, #exportPDF { background-color: #A9DFBF; }
+        .controls {
+            margin: 20px 0 10px 0; padding-top: 20px; border-top: 1px dashed var(--border-color);
+            display: flex; flex-wrap: wrap; align-items: center;
+        }
+        .classroom-layout { display: grid; grid-template-columns: repeat(5, 1fr) 0.5fr repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+        .seat {
+            min-height: 100px; border: 1px solid var(--border-color); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; background-color: #FDFEFE;
+            border-radius: 5px; transition: all 0.3s; position: relative;
+            padding: 5px; word-break: break-word; font-size: 1em; text-align: center;
+        }
+        .seat:hover { transform: scale(1.05); border-color: var(--primary-accent); }
+        .seat img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .seat .name { font-size: 0.9em; }
+        .gap { grid-column: 6; }
+        .hidden { display: none !important; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); 
+            backdrop-filter: blur(3px); z-index: 100; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--paper-color); padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;
+            max-height: 80vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-close { position: absolute; top: 10px; right: 15px; font-size: 28px; cursor: pointer; border: none; background: none; color: var(--tertiary-accent); }
+        .profile-customizer-list { padding-left: 0; }
+        .profile-customizer-list li { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0; list-style: none; }
+    </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
+</head>
+<body>
+    <h1>Classroom Seat Planner</h1>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>Student List</h2>
+            <label for="studentNames" class="hidden">Student Names</label>
+            <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line..."></textarea>
+        </div>
+    </div>
+    
+    <div class="classroom-section">
+        <h2 id="layoutTitle">Classroom Layout</h2>
+        <div><label for="deskCount">Number of Desks:</label><input type="number" id="deskCount" min="1" value="50"></div>
+        <div><label for="exportTitle">Custom Title for Export:</label><input type="text" id="exportTitle" placeholder="e.g., Grade 5 - Fall Semester"></div>
+
+        <div class="controls">
+            <button id="generateSeats">Generate Seating</button>
+            <button id="customizeProfiles" class="customize-button hidden">Customize Profiles</button>
+            <select id="demoSelector" class="demo-select" aria-label="Load a demo classroom section">
+                <option value="" disabled selected>Load Demo...</option>
+                <option value="A">Section A</option>
+                <option value="B">Section B</option>
+            </select>
+            <button id="saveLayout">Save</button>
+            <button id="loadLayout">Load</button>
+            <button id="exportPNG">Export PNG</button>
+            <button id="exportPDF">Export PDF</button>
+        </div>
+        <div id="classroom" class="classroom-layout"></div>
+    </div>
+
+    <div id="customizeModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-content">
+            <button id="modalClose" class="modal-close" aria-label="Close dialog">&times;</button>
+            <h3 id="modalTitle">Customize Student Profiles</h3>
+            <ul id="profileCustomizerList" class="profile-customizer-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = {
+                studentNames: document.getElementById('studentNames'), deskCount: document.getElementById('deskCount'),
+                classroom: document.getElementById('classroom'), layoutTitle: document.getElementById('layoutTitle'),
+                generateSeats: document.getElementById('generateSeats'), customizeProfiles: document.getElementById('customizeProfiles'),
+                demoSelector: document.getElementById('demoSelector'), exportTitle: document.getElementById('exportTitle'),
+                saveLayout: document.getElementById('saveLayout'), loadLayout: document.getElementById('loadLayout'),
+                exportPNG: document.getElementById('exportPNG'), exportPDF: document.getElementById('exportPDF'),
+                customizeModal: document.getElementById('customizeModal'), modalClose: document.getElementById('modalClose'),
+                profileCustomizerList: document.getElementById('profileCustomizerList'),
+            };
+
+            const DEMO_SECTIONS = {
+                A: { name: 'Section A', seed: 300 },
+                B: { name: 'Section B', seed: 400 }
+            };
+
+            let studentMasterList = [], currentLayout = [], currentMode = 'empty';
+
+            const updateUIMode = () => {
+                const isCustom = currentMode === 'custom' && studentMasterList.length > 0;
+                elements.customizeProfiles.classList.toggle('hidden', !isCustom);
+                elements.exportTitle.disabled = !isCustom;
+                if (!isCustom) elements.exportTitle.value = '';
+                elements.layoutTitle.textContent = isCustom ? 'Custom Seating Plan' : (currentMode === 'demo' ? elements.layoutTitle.textContent : 'Classroom Layout');
+            };
+            
+            const loadDemoSection = (sectionName, imageSeed) => {
+                currentMode = 'demo';
+                elements.layoutTitle.textContent = `${sectionName} Demo`;
+                studentMasterList = Array.from({length: 50}, (_, i) => ({ name: `Student ${i + 1}`, id: imageSeed + i, isDemo: true }));
+                currentLayout = [...studentMasterList];
+                elements.deskCount.value = 50;
+                elements.studentNames.value = '';
+                updateUIMode();
+                renderLayout();
+                alert(`${sectionName} demo loaded. Click 'Generate Seating' to shuffle.`);
+            };
+
+            const handleDemoSelection = (e) => {
+                const demoData = DEMO_SECTIONS[e.target.value];
+                if (demoData) loadDemoSection(demoData.name, demoData.seed);
+                e.target.value = ""; // Reset dropdown
+            };
+
+            const generateRandomSeating = () => {
+                if (elements.studentNames.value.trim() !== '') {
+                    currentMode = 'custom';
+                    const names = elements.studentNames.value.trim().split('\n').map(n => n.trim()).filter(Boolean);
+                    studentMasterList = names.map(n => studentMasterList.find(s => s.name === n && !s.isDemo) || { name: n, isDemo: false });
+                }
+                
+                if (studentMasterList.length === 0) return alert('Please enter student names or load a demo first.');
+                
+                // Fisher-Yates shuffle algorithm
+                currentLayout = [...studentMasterList];
+                for (let i = currentLayout.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [currentLayout[i], currentLayout[j]] = [currentLayout[j], currentLayout[i]];
+                }
+                updateUIMode();
+                renderLayout();
+            };
+            
+            const openCustomizeModal = () => {
+                elements.profileCustomizerList.innerHTML = '';
+                studentMasterList.filter(s => !s.isDemo).forEach(student => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${student.name}</span><input type="file" accept="image/*" data-name="${student.name}" style="font-size: 12px;" aria-label="Upload profile picture for ${student.name}">`;
+                    elements.profileCustomizerList.appendChild(li);
+                });
+                elements.customizeModal.classList.remove('hidden');
+            };
+
+            const handleProfileImageUpload = (e) => {
+                const input = e.target;
+                if (input.tagName !== 'INPUT' || !input.files[0]) return;
+                const student = studentMasterList.find(s => s.name === input.dataset.name);
+                if (!student) return;
+                const reader = new FileReader();
+                reader.onload = (event) => { student.imageData = event.target.result; renderLayout(); };
+                reader.readAsDataURL(input.files[0]);
+            };
+
+            const renderLayout = () => {
+                const { classroom, deskCount } = elements;
+                classroom.innerHTML = '';
+                const count = parseInt(deskCount.value, 10) || 0;
+                const fragment = document.createDocumentFragment();
+                let seatCounter = 0;
+
+                for (let i = 0; i < count; i++) {
+                    if (seatCounter > 0 && seatCounter % 5 === 0) {
+                        const gap = document.createElement('div');
+                        gap.className = 'gap';
+                        fragment.appendChild(gap);
+                    }
+
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    const student = currentLayout[i];
+
+                    if (student) {
+                        const nameSpan = `<span class="name">${student.name}</span>`;
+                        if (student.imageData) {
+                            seat.innerHTML = `<img src="${student.imageData}" alt="Profile picture of ${student.name}">${nameSpan}`;
+                        } else if (student.isDemo) {
+                            seat.innerHTML = `<img src="https://picsum.photos/seed/${student.id}/100" alt="Demo profile picture for ${student.name}">${nameSpan}`;
+                        } else {
+                            seat.innerHTML = nameSpan;
+                        }
+                    } else {
+                        seat.textContent = 'Empty';
+                        seat.style.backgroundColor = '#F8F9F9';
+                    }
+                    fragment.appendChild(seat);
+                    seatCounter++;
+                    if (seatCounter === 10) seatCounter = 0;
+                }
+                classroom.appendChild(fragment); // Single DOM update
+            };
+            
+            const saveLayout = () => {
+                localStorage.setItem('classroomLayout', JSON.stringify({
+                    deskCount: elements.deskCount.value, studentMasterList, currentLayout,
+                    title: elements.layoutTitle.textContent, mode: currentMode, exportTitle: elements.exportTitle.value
+                }));
+                alert('Layout saved!');
+            };
+
+            const loadLayout = () => {
+                const savedData = localStorage.getItem('classroomLayout');
+                if (!savedData) return alert('No saved layout found.');
+                
+                const saved = JSON.parse(savedData);
+                studentMasterList = saved.studentMasterList || [];
+                currentLayout = saved.currentLayout || [];
+                currentMode = saved.mode || 'empty';
+                elements.deskCount.value = saved.deskCount || 50;
+                elements.layoutTitle.textContent = saved.title || 'Classroom Layout';
+                elements.exportTitle.value = saved.exportTitle || '';
+                if (currentMode === 'custom') {
+                    elements.studentNames.value = studentMasterList.filter(s => !s.isDemo).map(s => s.name).join('\n');
+                }
+                updateUIMode();
+                renderLayout();
+                alert('Layout loaded!');
+            };
+
+            const setButtonLoadingState = (button, isLoading) => {
+                if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
+                button.disabled = isLoading;
+                button.textContent = isLoading ? 'Generating...' : button.dataset.originalText;
+            };
+
+            const exportToFile = async (isPNG) => {
+                if (currentLayout.length === 0) return alert('Please generate a layout first.');
+                const button = isPNG ? elements.exportPNG : elements.exportPDF;
+                setButtonLoadingState(button, true);
+
+                const exportContainer = document.createElement('div');
+                exportContainer.style.cssText = 'position: absolute; left: -9999px; top: 0; padding: 40px; background-color: var(--bg-color);';
+                
+                const customTitle = elements.exportTitle.value.trim();
+                const finalTitle = (currentMode === 'custom' && customTitle) ? customTitle : elements.layoutTitle.textContent;
+                
+                const titleElement = document.createElement('h2');
+                titleElement.textContent = finalTitle;
+                titleElement.style.cssText = 'font-family: inherit; color: var(--text-color); text-align: center; font-size: 2.5em; margin-bottom: 25px;';
+                exportContainer.appendChild(titleElement);
+                exportContainer.appendChild(elements.classroom.cloneNode(true));
+                document.body.appendChild(exportContainer);
+
+                // For PDF, ensure the captured area's aspect ratio matches an A4 page to prevent white bars.
+                if (!isPNG) {
+                    const A4_ASPECT_RATIO = 841.89 / 595.28;
+                    const containerWidth = exportContainer.offsetWidth;
+                    const requiredHeight = containerWidth * A4_ASPECT_RATIO;
+                    if (exportContainer.offsetHeight < requiredHeight) {
+                        exportContainer.style.height = `${requiredHeight}px`;
+                    }
+                }
+                
+                const downloadFileName = `${finalTitle.replace(/[\/\\?%*:|"<>]/g, '_') || 'Classroom_Layout'}.${isPNG ? 'png' : 'pdf'}`;
+                const options = { useCORS: true, scale: 2, backgroundColor: '#FFFBEF' };
+
+                try {
+                    const canvas = await html2canvas(exportContainer, options);
+                    const imgData = canvas.toDataURL('image/png');
+                    if (isPNG) {
+                        const link = document.createElement('a');
+                        link.download = downloadFileName;
+                        link.href = imgData;
+                        link.click();
+                    } else {
+                        const docDefinition = {
+                            content: [{ image: imgData, width: 595.28 }], // A4 width in points
+                            pageMargins: [0, 0, 0, 0]
+                        };
+                        pdfMake.createPdf(docDefinition).download(downloadFileName);
+                    }
+                } catch (err) {
+                    console.error("Export failed:", err);
+                    alert('An error occurred during export. Please try again.');
+                } finally {
+                    document.body.removeChild(exportContainer);
+                    setButtonLoadingState(button, false);
+                }
+            };
+            
+            // --- Event Listeners ---
+            elements.generateSeats.addEventListener('click', generateRandomSeating);
+            elements.customizeProfiles.addEventListener('click', openCustomizeModal);
+            elements.demoSelector.addEventListener('change', handleDemoSelection);
+            elements.saveLayout.addEventListener('click', saveLayout);
+            elements.loadLayout.addEventListener('click', loadLayout);
+            elements.exportPNG.addEventListener('click', () => exportToFile(true));
+            elements.exportPDF.addEventListener('click', () => exportToFile(false));
+            elements.modalClose.addEventListener('click', () => elements.customizeModal.classList.add('hidden'));
+            elements.profileCustomizerList.addEventListener('change', handleProfileImageUpload);
+
+            // Initial setup
+            updateUIMode();
+            renderLayout([]);
+        });
+    </script>
+</body>
+  </html>
