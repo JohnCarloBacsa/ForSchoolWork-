@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Seat Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #FFFBEF; 
+            --grid-line-color: rgba(133, 146, 158, 0.2);
+            --paper-color: #FFFFFF; 
+            --text-color: #2C3E50; 
+            --border-color: #B0BEC5;
+            
+            /* Muted/Matte Button Colors */
+            --btn-primary: #546E7A;       /* Blue Grey - Main Action */
+            --btn-primary-hover: #455A64;
+            
+            --btn-secondary: #78909C;     /* Lighter Blue Grey */
+            --btn-action: #8D6E63;        /* Warm Brown - Customization */
+            --btn-data: #7E57C2;          /* Muted Purple - Save/Load */
+            --btn-export: #66BB6A;        /* Muted Green - Export */
+            --btn-danger: #EF5350;        
+            
+            /* Profile Colors */
+            --male-color: #4FC3F7; 
+            --female-color: #F06292;
+
+            /* Desk Styling */
+            --desk-color: #FDFEFE;
+            --desk-border: #8D6E63;
+            --desk-shadow: #D7CCC8;
+            --chair-color: #607D8B;
+            --teacher-desk-color: #6D4C41;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Patrick Hand', cursive; font-size: 18px; color: var(--text-color);
+            background-color: var(--bg-color);
+            background-image: linear-gradient(var(--grid-line-color) 1px, transparent 1px), linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px);
+            background-size: 20px 20px; padding: 20px; margin: 0;
+        }
+        
+        h1, h2 { color: var(--text-color); text-align: center; font-size: 2.5em; margin-top: 0; }
+        h2 { text-align: left; font-size: 2em; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .container, .classroom-section {
+            background: var(--paper-color); padding: 25px; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #CFD8DC;
+            flex: 1; min-width: 300px; margin: 20px auto; max-width: 1200px; 
+        }
+
+        .main-content-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .input-section, .constraints-section {
+            background: var(--paper-color);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid #CFD8DC;
+            flex: 1;
+            min-width: 300px;
+            position: relative; 
+        }
+        
+        /* Form Elements */
+        textarea, input[type="number"], input[type="text"], .student-select, .layout-select {
+            width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border-color);
+            border-radius: 6px; font-family: inherit; font-size: 1em; background-color: #FAFAFA;
+            color: #333; transition: border-color 0.2s;
+        }
+        
+        textarea:focus, input:focus, select:focus {
+            outline: none; border-color: var(--btn-primary); background-color: #fff;
+        }
+        
+        /* Button Base Styling */
+        button, .demo-select, .layout-select {
+            color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer;
+            margin-right: 0; margin-bottom: 0; transition: all 0.2s ease;
+            font-family: inherit; font-size: 1em; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover:not(:disabled), .demo-select:hover:not(:disabled) { 
+            transform: translateY(-1px); 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15); 
+            filter: brightness(105%); 
+        }
+        
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; background-color: #B0BEC5 !important; }
+        
+        /* --- UPDATED BUTTON COLORS --- */
+        #generateSeats, 
+        #alternateSeats, 
+        #addConstraint, 
+        #applyGrid,
+        .demo-select { 
+            background-color: var(--btn-primary); 
+        }
+        
+        /* Custom/Other colors */
+        .customize-button, #manageGroupingsBtn, .layout-select { 
+            background-color: var(--btn-action); 
+            color: #FFFFFF !important; /* Forces text to be white */
+        }
+        
+        /* Dropdown specific styling */
+        .layout-select { 
+            padding: 9px 15px; 
+            width: auto; 
+            font-weight: bold; 
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .layout-select option {
+            background-color: white;
+            color: #333;
+        }
+
+        #saveLayout, #loadLayout { background-color: var(--btn-data); }
+        #exportPNG, #exportPDF { background-color: var(--btn-export); }
+        
+        .demo-select { padding: 9px 15px; } 
+        
+        .remove-constraint, .remove-group { background-color: var(--btn-danger); padding: 5px 10px; margin-left: 5px; }
+        
+        /* Clear List Button - Absolute Position */
+        #clearStudentList {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            margin: 0;
+            padding: 5px 12px;
+            background-color: var(--btn-danger);
+            color: white;
+            font-weight: bold;
+            font-size: 1.1em;
+            line-height: 1;
+            z-index: 10;
+        }
+
+        /* Controls Toolbar Organization */
+        .controls {
+            margin: 20px 0 10px 0; 
+            padding-top: 20px; 
+            border-top: 1px dashed var(--border-color);
+            display: flex; 
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .control-group-label {
+            font-size: 0.9em;
+            color: #78909C;
+            width: 100%;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- Teacher's Desk Styles --- */
+        #teacherArea {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+
+        .teacher-desk {
+            width: 220px;
+            height: 90px;
+            background-color: var(--teacher-desk-color);
+            border: 3px solid #4E342E;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            position: relative;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+            z-index: 2;
+        }
+
+        .teacher-desk::before {
+            content: '';
+            position: absolute;
+            /* Moved down to -10px */
+            top: -10px;
+            width: 70px;
+            height: 35px;
+            background-color: var(--chair-color);
+            border-radius: 15px 15px 0 0;
+            border: 2px solid #37474F;
+            z-index: -1;
+        }
+        
+        .teacher-desk::after {
+            display: none;
+        }
+
+        /* --- Student Desk Styles --- */
+        .classroom-layout { 
+            display: grid; 
+            /* Default fallback */
+            grid-template-columns: repeat(5, 1fr) 0.5fr repeat(5, 1fr); 
+            gap: 25px 15px; 
+            margin-top: 20px; 
+            padding-bottom: 20px;
+        }
+        
+        .classroom-layout.group-view { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .seat {
+            min-height: 110px; 
+            background-color: var(--desk-color);
+            border: 2px solid var(--desk-border);
+            border-radius: 8px; 
+            box-shadow: 0 5px 0 var(--desk-shadow);
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s; 
+            position: relative;
+            padding: 5px; 
+            word-break: break-word; 
+            font-size: 1em; 
+            text-align: center;
+            z-index: 1;
+            margin-bottom: 15px; 
+        }
+        
+        .seat::after {
+            content: '';
+            display: block;
+            width: 50%;
+            height: 18px;
+            background-color: var(--chair-color);
+            border-radius: 0 0 10px 10px;
+            position: absolute;
+            bottom: -20px;
+            left: 25%;
+            z-index: 0;
+            border: 1px solid #37474F;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+        }
+        
+        .seat:hover { transform: translateY(-2px); border-color: var(--btn-primary); }
+        
+        .seat img { 
+            width: 50px; height: 50px; border-radius: 50%; object-fit: cover; 
+            margin-bottom: 8px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            background: #fff;
+        }
+        
+        .seat img.img-male { border: 3px solid var(--male-color) !important; }
+        .seat img.img-female { border: 3px solid var(--female-color) !important; }
+
+        .seat .name { font-size: 0.9em; font-weight: bold; color: #333; }
+        
+        .group-wrapper {
+            flex: 1 1 300px; padding: 15px; border-radius: 8px;
+            border: 1px dashed var(--border-color); background-color: rgba(255,255,255,0.5);
+        }
+        .group-wrapper h3 { margin-top: 0; text-align: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; }
+        .group-seats { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+
+        .gap { grid-column: auto !important; min-height: 100%; }
+        .hidden { display: none !important; }
+        
+        /* Modals */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); 
+            backdrop-filter: blur(3px); z-index: 100; display: flex; align-items: center; justify-content: center;
+        }
+        
+        .modal-content {
+            background: var(--paper-color); padding: 30px; border-radius: 8px; width: 90%; max-width: 600px;
+            max-height: 80vh; overflow-y: auto; position: relative; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-close { position: absolute; top: 10px; right: 15px; font-size: 28px; cursor: pointer; border: none; background: none; color: #90A4AE; }
+        
+        .profile-customizer-list, .group-list, .saved-files-list { padding-left: 0; list-style: none; }
+        
+        /* Centered List items */
+        .profile-customizer-list li { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+        
+        .group-item, .saved-file-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+        
+        .saved-file-item { justify-content: space-between; }
+        .saved-file-item:hover { background-color: #f9f9f9; }
+        .load-file-btn { background-color: var(--btn-data); padding: 5px 15px; font-size: 0.9em; }
+
+        .constraint-pair { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .student-name-input { flex: 1; margin-bottom: 0 !important; }
+
+        .gender-select-group { display: flex; gap: 2px; }
+        .gender-btn {
+            padding: 5px 10px; margin: 0; border-radius: 4px; border: 1px solid #ccc; background-color: #f5f5f5;
+            color: #666; cursor: pointer; font-size: 0.9em; width: 35px; text-align: center; box-shadow: none;
+        }
+        .gender-btn:hover { transform: none; }
+        
+        .gender-btn.male-active { background-color: var(--male-color); color: white; border-color: #0288D1; }
+        .gender-btn.female-active { background-color: var(--female-color); color: white; border-color: #C2185B; }
+
+        #addGroupBtn { background-color: var(--btn-primary); margin-top: 15px; }
+        #arrangementName { max-width: 400px; }
+        
+        /* --- CUSTOM FILE INPUT STYLES --- */
+        .custom-file-input {
+            display: none;
+        }
+        .custom-file-label {
+            background-color: #e0e0e0;
+            color: #333;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+        .custom-file-label:hover {
+            background-color: #d5d5d5;
+        }
+        .file-name-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-left: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 110px;
+            display: inline-block;
+        }
+
+        /* --- OPTIMIZED X BUTTON --- */
+        .remove-image-btn { 
+            background: #EF5350; color: white; border: none; 
+            border-radius: 50%; width: 24px; height: 24px; 
+            font-size: 14px; cursor: pointer; display: flex; 
+            align-items: center; justify-content: center; 
+            margin-left: auto; /* Push to far right */
+            flex-shrink: 0;    /* Prevent squashing */
+            font-weight: bold;
+            line-height: 1;
+        }
+        .remove-image-btn:hover { background: #D32F2F; }
+        
+        .config-container {
+            display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;
+            background-color: #F8F9F9; padding: 15px; border-radius: 6px; border: 1px solid #EAECEE;
+        }
+    </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
+</head>
+<body>
+    <h1>Generate Random Seating Arrangement</h1>
+    
+    <div class="main-content-wrapper">
+        <div class="input-section">
+            <h2>Student List</h2>
+            <button id="clearStudentList" title="Reset Whole Page">&times;</button>
+            
+            <label for="studentNames" class="hidden">Student Names</label>
+            <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line..."></textarea>
+        </div>
+        
+        <div class="constraints-section">
+            <h2>Seating Constraints</h2>
+            <div id="constraintsContainer"></div>
+            <button id="addConstraint">Add Constraint</button>
+        </div>
+    </div>
+    
+    <div class="classroom-section">
+        <h2 id="layoutTitle">Classroom Layout</h2>
+        
+        <!-- Configuration Section -->
+        <div class="config-container">
+            <!-- Moved Section Name Here -->
+            <div style="flex: 1; min-width: 200px;">
+                <label for="exportTitle">Section Name:</label>
+                <input type="text" id="exportTitle" placeholder="Enter Section Name">
+            </div>
+
+            <div id="deskCountContainer" style="flex: 1; min-width: 200px;">
+                <label for="deskCount">Number of Desks:</label>
+                <input type="number" id="deskCount" min="1" value="50">
+            </div>
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label for="gridPattern" title="Enter column numbers separated by spaces">Row Config (e.g. 2 2 2):</label>
+                <div style="display: flex; gap: 10px; align-items: start;">
+                    <input type="text" id="gridPattern" placeholder="e.g. 2 2 2" value="5 5">
+                    <button id="applyGrid">Apply</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organized Controls -->
+        <div class="controls">
+            <!-- Group 1: Generation -->
+            <div class="control-group">
+                <div class="control-group-label">Generation</div>
+                <button id="generateSeats">Shuffle / Generate</button>
+                <button id="alternateSeats">Alternate Boy/Girl</button>
+                <select id="demoSelector" class="demo-select" aria-label="Load a demo classroom section">
+                    <option value="" disabled selected>Load Demo...</option>
+                    <option value="A">Section A</option>
+                    <option value="B">Section B</option>
+                </select>
+            </div>
+
+            <!-- Group 2: Management -->
+            <div class="control-group">
+                <div class="control-group-label">Management</div>
+                <button id="customizeProfiles" class="customize-button hidden">Customize Profiles</button>
+                <button id="manageGroupingsBtn">Manage Groupings</button>
+                <select id="layoutSelector" class="layout-select hidden" aria-label="Select a seating layout"></select>
+            </div>
+
+            <!-- Group 3: Data & Export -->
+            <div class="control-group">
+                <div class="control-group-label">Data & Export</div>
+                <button id="saveLayout">Save Data</button>
+                <button id="loadLayout">Load Data</button>
+                <div style="width: 1px; height: 30px; background: #ddd; margin: 0 10px;"></div>
+                <button id="exportPNG">Export PNG</button>
+                <button id="exportPDF">Export PDF</button>
+            </div>
+        </div>
+        
+        <!-- Teacher's Desk Area -->
+        <div id="teacherArea">
+            <div class="teacher-desk">
+                <span>Teacher's Desk</span>
+            </div>
+        </div>
+
+        <div id="classroom" class="classroom-layout"></div>
+    </div>
+
+    <!-- Profile Customizer Modal -->
+    <div id="customizeModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-content">
+            <button id="modalClose" class="modal-close" aria-label="Close dialog">&times;</button>
+            <h3 id="modalTitle">Customize Student Profiles</h3>
+            <ul id="profileCustomizerList" class="profile-customizer-list"></ul>
+        </div>
+    </div>
+
+    <!-- Groupings Manager Modal -->
+    <div id="groupingsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="groupingsModalTitle">
+        <div class="modal-content">
+            <button id="groupingsModalClose" class="modal-close" aria-label="Close dialog">&times;</button>
+            <h3 id="groupingsModalTitle">Manage Groupings</h3>
+            
+            <h4>Existing Arrangements</h4>
+            <ul id="existingGroupingsList" class="group-list"></ul>
+            <hr>
+            
+            <h4>Add/Edit Arrangement</h4>
+            <div>
+                <label for="arrangementName">Arrangement Name:</label>
+                <input type="text" id="arrangementName" placeholder="e.g., Science Lab Groups">
+            </div>
+            <h5>Groups</h5>
+            <ul id="groupList" class="group-list"></ul>
+            <button id="addGroupBtn">Add Group</button>
+            <hr>
+            <button id="saveGroupingBtn" style="background-color: var(--btn-primary);">Save Arrangement</button>
+        </div>
+    </div>
+
+    <!-- SAVE / LOAD MANAGER MODAL -->
+    <div id="saveLoadModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="saveLoadTitle">
+        <div class="modal-content">
+            <button id="saveLoadModalClose" class="modal-close" aria-label="Close dialog">&times;</button>
+            <h3 id="saveLoadTitle">Save / Load Manager</h3>
+            
+            <div style="background: #F1F8E9; padding: 15px; border-radius: 6px; border: 1px solid #C5E1A5; margin-bottom: 20px;">
+                <h4 style="margin-top:0;">Save Current Layout</h4>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="newSaveName" placeholder="Enter a name for this save..." style="margin-bottom:0;">
+                    <button id="confirmSaveBtn" style="background-color: var(--btn-primary); white-space: nowrap;">Save</button>
+                </div>
+            </div>
+
+            <h4>Select a File to Load</h4>
+            <ul id="savedFilesList" class="saved-files-list">
+                <!-- Saved items injected here -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = {
+                studentNames: document.getElementById('studentNames'), deskCount: document.getElementById('deskCount'),
+                classroom: document.getElementById('classroom'), layoutTitle: document.getElementById('layoutTitle'),
+                generateSeats: document.getElementById('generateSeats'), 
+                alternateSeats: document.getElementById('alternateSeats'),
+                customizeProfiles: document.getElementById('customizeProfiles'),
+                demoSelector: document.getElementById('demoSelector'), exportTitle: document.getElementById('exportTitle'),
+                saveLayout: document.getElementById('saveLayout'), loadLayout: document.getElementById('loadLayout'),
+                exportPNG: document.getElementById('exportPNG'), exportPDF: document.getElementById('exportPDF'),
+                customizeModal: document.getElementById('customizeModal'), modalClose: document.getElementById('modalClose'),
+                profileCustomizerList: document.getElementById('profileCustomizerList'),
+                addConstraintBtn: document.getElementById('addConstraint'),
+                constraintsContainer: document.getElementById('constraintsContainer'),
+                deskCountContainer: document.getElementById('deskCountContainer'),
+                manageGroupingsBtn: document.getElementById('manageGroupingsBtn'),
+                groupingsModal: document.getElementById('groupingsModal'),
+                groupingsModalClose: document.getElementById('groupingsModalClose'),
+                arrangementName: document.getElementById('arrangementName'),
+                groupList: document.getElementById('groupList'),
+                addGroupBtn: document.getElementById('addGroupBtn'),
+                saveGroupingBtn: document.getElementById('saveGroupingBtn'),
+                layoutSelector: document.getElementById('layoutSelector'),
+                existingGroupingsList: document.getElementById('existingGroupingsList'),
+                gridPattern: document.getElementById('gridPattern'),
+                applyGrid: document.getElementById('applyGrid'),
+                teacherArea: document.getElementById('teacherArea'),
+                // Save/Load
+                saveLoadModal: document.getElementById('saveLoadModal'),
+                saveLoadModalClose: document.getElementById('saveLoadModalClose'),
+                savedFilesList: document.getElementById('savedFilesList'),
+                newSaveName: document.getElementById('newSaveName'),
+                confirmSaveBtn: document.getElementById('confirmSaveBtn'),
+                // New Clear Button
+                clearStudentList: document.getElementById('clearStudentList')
+            };
+
+            const DEMO_SECTIONS = { A: { name: 'Section A', seed: 300 }, B: { name: 'Section B', seed: 400 } };
+
+            let studentMasterList = [], currentLayout = [], currentMode = 'empty';
+            let constraints = [];
+            let customGroupings = JSON.parse(localStorage.getItem('customGroupings')) || {};
+            let savedLayoutsMap = JSON.parse(localStorage.getItem('allSavedLayouts')) || {};
+
+            let activeLayout = 'default_grid';
+            let gridConfig = [5, 5];
+
+            const updateUIMode = () => {
+                const isCustom = currentMode === 'custom' && studentMasterList.length > 0;
+                elements.customizeProfiles.classList.toggle('hidden', !isCustom);
+                elements.exportTitle.disabled = !isCustom;
+                if (!isCustom) elements.exportTitle.value = '';
+                elements.layoutTitle.textContent = isCustom ? 'Custom Seating Plan' : (currentMode === 'demo' ? elements.layoutTitle.textContent : 'Classroom Layout');
+                updateStudentSelects();
+            };
+
+            const updateLayoutSelector = () => {
+                elements.layoutSelector.innerHTML = '<option value="default_grid">Default Grid</option>';
+                const groupingNames = Object.keys(customGroupings);
+                if (groupingNames.length > 0) {
+                    groupingNames.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        elements.layoutSelector.appendChild(option);
+                    });
+                    elements.layoutSelector.classList.remove('hidden');
+                } else {
+                    elements.layoutSelector.classList.add('hidden');
+                }
+                elements.layoutSelector.value = activeLayout;
+            };
+
+            const switchLayout = (layoutName) => {
+                activeLayout = layoutName;
+                const isGroup = layoutName !== 'default_grid';
+                elements.deskCountContainer.classList.toggle('hidden', isGroup);
+                elements.classroom.className = isGroup ? 'classroom-layout group-view' : 'classroom-layout';
+                
+                if (isGroup) {
+                    elements.classroom.style.gridTemplateColumns = '';
+                } else {
+                    renderLayout();
+                }
+                renderLayout();
+            };
+
+            const loadDemoSection = (sectionName, imageSeed) => {
+                currentMode = 'demo';
+                elements.layoutTitle.textContent = `${sectionName} Demo`;
+                studentMasterList = Array.from({length: 50}, (_, i) => ({ name: `Student ${i + 1}`, id: imageSeed + i, isDemo: true }));
+                currentLayout = [...studentMasterList];
+                elements.deskCount.value = 50;
+                elements.studentNames.value = '';
+                constraints = [];
+                switchLayout('default_grid');
+                renderConstraints();
+                updateUIMode();
+                renderLayout();
+                alert(`${sectionName} demo loaded. Click 'Shuffle' or 'Alternate' to arrange.`);
+            };
+
+            const updateStudentSelects = () => {
+                const selects = document.querySelectorAll('.student-select');
+                selects.forEach(select => {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">-- Select Student --</option>';
+                    studentMasterList.filter(s => !s.isDemo).forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.name;
+                        option.textContent = student.name;
+                        select.appendChild(option);
+                    });
+                    if (Array.from(select.options).some(opt => opt.value === currentValue)) {
+                        select.value = currentValue;
+                    }
+                });
+            };
+            
+            const addConstraintPair = () => {
+                const constraintDiv = document.createElement('div');
+                constraintDiv.className = 'constraint-pair';
+                constraintDiv.innerHTML = `
+                    <select class="student-select" aria-label="Student 1 for constraint"></select>
+                    <select class="student-select" aria-label="Student 2 for constraint"></select>
+                    <button class="remove-constraint" aria-label="Remove constraint">&times;</button>
+                `;
+                constraintDiv.querySelector('.remove-constraint').addEventListener('click', () => {
+                    constraintDiv.remove();
+                    updateConstraintsFromUI();
+                });
+                elements.constraintsContainer.appendChild(constraintDiv);
+                updateStudentSelects();
+            };
+            
+            const updateConstraintsFromUI = () => {
+                constraints = [];
+                document.querySelectorAll('.constraint-pair').forEach(pair => {
+                    const selects = pair.querySelectorAll('select');
+                    const student1 = selects[0].value;
+                    const student2 = selects[1].value;
+                    if (student1 && student2 && student1 !== student2) {
+                        constraints.push([student1, student2].sort());
+                    }
+                });
+                constraints = Array.from(new Set(constraints.map(JSON.stringify)), JSON.parse);
+            };
+            
+            const renderConstraints = () => {
+                elements.constraintsContainer.innerHTML = '';
+                if (constraints.length === 0) addConstraintPair();
+                else constraints.forEach(c => addConstraintPair());
+            };
+
+            const syncTextareaWithList = () => {
+                if (currentMode === 'custom' && studentMasterList.length > 0) {
+                    elements.studentNames.value = studentMasterList.filter(s => !s.isDemo).map(s => s.name).join('\n');
+                }
+            };
+
+            const shuffleArray = (array) => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            };
+
+            const generateRandomSeating = () => {
+                if (elements.studentNames.value.trim() !== '') {
+                    currentMode = 'custom';
+                    const names = elements.studentNames.value.trim().split('\n').map(n => n.trim()).filter(Boolean);
+                    
+                    // FIX: Create a pool of existing non-demo students to prevent duplicate references
+                    let studentPool = studentMasterList.filter(s => !s.isDemo);
+                    
+                    studentMasterList = names.map(n => {
+                        // Try to find a student with this name in the pool
+                        const poolIndex = studentPool.findIndex(s => s.name === n);
+                        
+                        if (poolIndex !== -1) {
+                            // Found one, remove from pool so it isn't reused for a duplicate name
+                            const existing = studentPool[poolIndex];
+                            studentPool.splice(poolIndex, 1);
+                            return existing;
+                        } else {
+                            // New student
+                            return { name: n, isDemo: false };
+                        }
+                    });
+                }
+                if (studentMasterList.length === 0) return alert('Please enter student names or load a demo first.');
+                
+                updateConstraintsFromUI();
+                let shuffledStudents = [...studentMasterList];
+                shuffleArray(shuffledStudents);
+                currentLayout = shuffledStudents;
+                updateUIMode();
+                renderLayout();
+            };
+
+            const generateAlternateSeating = () => {
+                if (elements.studentNames.value.trim() !== '') {
+                    currentMode = 'custom';
+                    const names = elements.studentNames.value.trim().split('\n').map(n => n.trim()).filter(Boolean);
+                    
+                    // FIX: Use pool to handle duplicates correctly here too
+                    let studentPool = studentMasterList.filter(s => !s.isDemo);
+                    
+                    studentMasterList = names.map(n => {
+                        const poolIndex = studentPool.findIndex(s => s.name === n);
+                        if (poolIndex !== -1) {
+                            const existing = studentPool[poolIndex];
+                            studentPool.splice(poolIndex, 1);
+                            return existing;
+                        } else {
+                            return { name: n, isDemo: false };
+                        }
+                    });
+                }
+                if (studentMasterList.length === 0) return alert('Please enter student names or load a demo first.');
+
+                updateConstraintsFromUI();
+                const males = studentMasterList.filter(s => s.gender === 'male');
+                const females = studentMasterList.filter(s => s.gender === 'female');
+                const others = studentMasterList.filter(s => !s.gender);
+
+                shuffleArray(males);
+                shuffleArray(females);
+                shuffleArray(others);
+
+                const alternated = [];
+                const maxLen = Math.max(males.length, females.length);
+                for (let i = 0; i < maxLen; i++) {
+                    if (i < males.length) alternated.push(males[i]);
+                    if (i < females.length) alternated.push(females[i]);
+                }
+                alternated.push(...others);
+                currentLayout = alternated;
+                updateUIMode();
+                renderLayout();
+            };
+            
+            const openCustomizeModal = () => {
+                elements.profileCustomizerList.innerHTML = '';
+                
+                // Iterate carefully to sync index
+                studentMasterList.forEach((student, index) => {
+                    if(student.isDemo) return;
+
+                    const li = document.createElement('li');
+                    
+                    let imgPreview = '';
+                    let removeBtn = '';
+                    let fileStatus = student.fileName ? student.fileName : 'No file chosen';
+                    if (student.imageData && !student.fileName) fileStatus = 'Saved Image';
+
+                    if (student.imageData) {
+                        imgPreview = `<img src="${student.imageData}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc;">`;
+                        removeBtn = `<button class="remove-image-btn" data-index="${index}" title="Remove Image">&times;</button>`;
+                    } else {
+                        imgPreview = `<div style="width: 40px; height: 40px; border-radius: 50%; background: #eee; border: 1px solid #ccc;"></div>`;
+                        // Ghost button to keep alignment if needed, or just nothing
+                        removeBtn = `<div style="width:24px; margin-left:auto;"></div>`;
+                    }
+
+                    const maleActive = student.gender === 'male' ? 'male-active' : '';
+                    const femaleActive = student.gender === 'female' ? 'female-active' : '';
+
+                    // Unique ID for file input
+                    const fileId = `file-upload-${index}`;
+
+                    li.innerHTML = `
+                        ${imgPreview}
+                        <input type="text" class="student-name-input" value="${student.name}" data-index="${index}" aria-label="Edit name for ${student.name}">
+                        <div class="gender-select-group">
+                            <button class="gender-btn ${maleActive}" data-index="${index}" data-gender="male" title="Mark as Male">M</button>
+                            <button class="gender-btn ${femaleActive}" data-index="${index}" data-gender="female" title="Mark as Female">F</button>
+                        </div>
+                        
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label for="${fileId}" class="custom-file-label">Choose File</label>
+                            <input id="${fileId}" type="file" accept="image/*" class="custom-file-input" data-index="${index}">
+                            <span class="file-name-text" title="${fileStatus}">${fileStatus}</span>
+                        </div>
+                        
+                        ${removeBtn}
+                    `;
+                    elements.profileCustomizerList.appendChild(li);
+                });
+                elements.customizeModal.classList.remove('hidden');
+            };
+
+            elements.profileCustomizerList.addEventListener('click', (e) => {
+                // Gender Button Logic
+                if (e.target.classList.contains('gender-btn')) {
+                    const index = e.target.dataset.index;
+                    const gender = e.target.dataset.gender;
+                    const student = studentMasterList[index];
+                    if (student) {
+                        if (student.gender === gender) delete student.gender;
+                        else student.gender = gender;
+                        openCustomizeModal();
+                        renderLayout();
+                    }
+                }
+                
+                // Remove Image Button Logic
+                if (e.target.classList.contains('remove-image-btn')) {
+                    const index = e.target.dataset.index;
+                    const student = studentMasterList[index];
+                    if(student) {
+                        delete student.imageData;
+                        delete student.fileName; // Clear filename
+                        openCustomizeModal();
+                        renderLayout();
+                    }
+                }
+            });
+            
+            elements.profileCustomizerList.addEventListener('input', (e) => {
+                if (e.target.classList.contains('student-name-input')) {
+                    const index = e.target.dataset.index;
+                    if (studentMasterList[index]) {
+                        studentMasterList[index].name = e.target.value;
+                        syncTextareaWithList(); 
+                        renderLayout();
+                    }
+                }
+            });
+
+            const handleProfileImageUpload = (e) => {
+                const input = e.target;
+                if (!input.classList.contains('custom-file-input') || !input.files[0]) return;
+                
+                const index = input.dataset.index;
+                const student = studentMasterList[index];
+                if (!student) return;
+                
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 200; 
+                        const MAX_HEIGHT = 200;
+                        let { width, height } = img;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                        } else {
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        student.imageData = canvas.toDataURL('image/jpeg', 0.9);
+                        student.fileName = file.name; // Store the filename
+                        
+                        // Reset input
+                        input.value = '';
+                        
+                        // Refresh UI
+                        openCustomizeModal();
+                        syncTextareaWithList(); 
+                        renderLayout();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+
+            const renderLayout = () => {
+                elements.classroom.innerHTML = '';
+                if (activeLayout === 'default_grid') renderGridLayout();
+                else if (customGroupings[activeLayout]) renderGroupLayout();
+            };
+
+            const createSeatElement = (student) => {
+                const seat = document.createElement('div');
+                seat.className = 'seat';
+                if (student) {
+                    const nameSpan = `<span class="name">${student.name}</span>`;
+                    let imgHtml = '';
+                    let imgClass = '';
+                    if (student.gender === 'male') imgClass = 'img-male';
+                    if (student.gender === 'female') imgClass = 'img-female';
+
+                    if (student.imageData) {
+                        imgHtml = `<img src="${student.imageData}" alt="${student.name}" class="${imgClass}">`;
+                    } else if (student.isDemo) {
+                        imgHtml = `<img src="https://picsum.photos/seed/${student.id}/200" alt="Demo profile of ${student.name}" class="${imgClass}">`;
+                    }
+                    seat.innerHTML = `${imgHtml}${nameSpan}`;
+                } else {
+                    seat.innerHTML = '<span style="color:#ccc;">Empty</span>';
+                }
+                return seat;
+            };
+
+            const renderGridLayout = () => {
+                const count = parseInt(elements.deskCount.value, 10) || 0;
+                const fragment = document.createDocumentFragment();
+                
+                const seatsPerRow = gridConfig.reduce((a, b) => a + b, 0);
+                const templateColumns = gridConfig.map(n => `repeat(${n}, 1fr)`).join(' 0.5fr '); 
+                elements.classroom.style.gridTemplateColumns = templateColumns;
+
+                let currentSeatInRow = 0;
+                let currentConfigIndex = 0;
+                let accumulatedConfig = gridConfig[0];
+
+                for (let i = 0; i < count; i++) {
+                    fragment.appendChild(createSeatElement(currentLayout[i]));
+                    currentSeatInRow++;
+
+                    if (currentSeatInRow === accumulatedConfig) {
+                        if (currentSeatInRow < seatsPerRow) {
+                            const gap = document.createElement('div');
+                            gap.className = 'gap';
+                            fragment.appendChild(gap);
+                            currentConfigIndex++;
+                            accumulatedConfig += gridConfig[currentConfigIndex];
+                        } else {
+                            currentSeatInRow = 0;
+                            currentConfigIndex = 0;
+                            accumulatedConfig = gridConfig[0];
+                        }
+                    }
+                }
+                elements.classroom.appendChild(fragment);
+            };
+
+            const renderGroupLayout = () => {
+                const grouping = customGroupings[activeLayout];
+                if (!grouping) return;
+                elements.classroom.style.gridTemplateColumns = '';
+                let studentIndex = 0;
+                grouping.groups.forEach(group => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'group-wrapper';
+                    wrapper.innerHTML = `<h3>${group.name}</h3>`;
+                    const seatsContainer = document.createElement('div');
+                    seatsContainer.className = 'group-seats';
+                    for (let i = 0; i < group.seats; i++) {
+                        seatsContainer.appendChild(createSeatElement(currentLayout[studentIndex++]));
+                    }
+                    wrapper.appendChild(seatsContainer);
+                    elements.classroom.appendChild(wrapper);
+                });
+            };
+            
+            // --- Save/Load Manager Logic ---
+
+            const renderSavedFileList = () => {
+                elements.savedFilesList.innerHTML = '';
+                const keys = Object.keys(savedLayoutsMap);
+                
+                if (keys.length === 0) {
+                    elements.savedFilesList.innerHTML = '<li style="color:#888;">No saved files found.</li>';
+                    return;
+                }
+
+                keys.forEach(key => {
+                    const li = document.createElement('li');
+                    li.className = 'saved-file-item';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = key;
+                    nameSpan.style.fontWeight = 'bold';
+                    
+                    const btnGroup = document.createElement('div');
+                    
+                    const loadBtn = document.createElement('button');
+                    loadBtn.className = 'load-file-btn';
+                    loadBtn.textContent = 'Load';
+                    loadBtn.onclick = () => loadSpecificLayout(key);
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'remove-group';
+                    delBtn.innerHTML = '&times;';
+                    delBtn.title = 'Delete Save';
+                    delBtn.onclick = () => deleteSavedLayout(key);
+
+                    btnGroup.appendChild(loadBtn);
+                    btnGroup.appendChild(delBtn);
+                    
+                    li.appendChild(nameSpan);
+                    li.appendChild(btnGroup);
+                    elements.savedFilesList.appendChild(li);
+                });
+            };
+
+            const saveCurrentLayout = () => {
+                const name = elements.newSaveName.value.trim() || `Save ${new Date().toLocaleString()}`;
+                try {
+                    const dataToSave = {
+                        deskCount: elements.deskCount.value, 
+                        studentMasterList, 
+                        currentLayout,
+                        title: elements.layoutTitle.textContent, 
+                        mode: currentMode, 
+                        exportTitle: elements.exportTitle.value,
+                        constraints: constraints, 
+                        activeLayout: activeLayout, 
+                        gridConfig: gridConfig
+                    };
+
+                    // Update Map
+                    savedLayoutsMap[name] = dataToSave;
+                    
+                    // Save Map to LocalStorage
+                    localStorage.setItem('allSavedLayouts', JSON.stringify(savedLayoutsMap));
+                    
+                    // Backup to single slot for legacy compatibility
+                    localStorage.setItem('classroomLayout', JSON.stringify(dataToSave));
+
+                    elements.newSaveName.value = '';
+                    renderSavedFileList();
+                    alert(`Layout saved as "${name}"!`);
+                } catch(e) {
+                    console.error(e);
+                    alert('Save failed. Storage might be full.');
+                }
+            };
+
+            const loadSpecificLayout = (key) => {
+                const saved = savedLayoutsMap[key];
+                if (!saved) return;
+                
+                studentMasterList = saved.studentMasterList || [];
+                currentLayout = saved.currentLayout || [];
+                currentMode = saved.mode || 'empty';
+                elements.deskCount.value = saved.deskCount || 50;
+                elements.layoutTitle.textContent = saved.title || 'Classroom Layout';
+                elements.exportTitle.value = saved.exportTitle || '';
+                constraints = saved.constraints || [];
+                activeLayout = saved.activeLayout || 'default_grid';
+                
+                if (saved.gridConfig && Array.isArray(saved.gridConfig)) {
+                    gridConfig = saved.gridConfig;
+                    elements.gridPattern.value = gridConfig.join(' ');
+                }
+
+                if (currentMode === 'custom') {
+                    elements.studentNames.value = studentMasterList.filter(s => !s.isDemo).map(s => s.name).join('\n');
+                }
+                updateUIMode(); renderConstraints(); updateLayoutSelector();
+                switchLayout(activeLayout); renderLayout(); 
+                
+                elements.saveLoadModal.classList.add('hidden');
+                alert(`Loaded "${key}" successfully!`);
+            };
+
+            const deleteSavedLayout = (key) => {
+                if(confirm(`Delete "${key}"?`)) {
+                    delete savedLayoutsMap[key];
+                    localStorage.setItem('allSavedLayouts', JSON.stringify(savedLayoutsMap));
+                    renderSavedFileList();
+                }
+            };
+
+            const openSaveLoadModal = () => {
+                renderSavedFileList();
+                elements.saveLoadModal.classList.remove('hidden');
+            };
+
+            const setButtonLoadingState = (button, isLoading) => {
+                if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
+                button.disabled = isLoading;
+                button.textContent = isLoading ? 'Processing...' : button.dataset.originalText;
+            };
+
+            const exportToFile = async (isPNG) => {
+                if (elements.classroom.children.length === 0) return alert('Please generate a layout first.');
+                
+                const button = isPNG ? elements.exportPNG : elements.exportPDF;
+                setButtonLoadingState(button, true);
+
+                const exportContainer = document.createElement('div');
+                const isGroupView = elements.classroom.classList.contains('group-view');
+                
+                const originalWidth = elements.classroom.scrollWidth;
+                
+                exportContainer.style.position = 'fixed';
+                exportContainer.style.left = '-9999px';
+                exportContainer.style.top = '0';
+                
+                // Reduced padding to cut whitespace
+                exportContainer.style.padding = '20px'; 
+                exportContainer.style.backgroundColor = '#FFFBEF'; 
+                exportContainer.style.display = 'flex';
+                exportContainer.style.flexDirection = 'column';
+                exportContainer.style.alignItems = 'center';
+                // fit-content ensures the container only takes up the necessary height
+                exportContainer.style.height = 'fit-content';
+                
+                exportContainer.style.width = (originalWidth + 80) + 'px'; 
+
+                const finalTitle = elements.exportTitle.value.trim() || elements.layoutTitle.textContent;
+                exportContainer.innerHTML = `<h2 style="font-family: inherit; color: #2C3E50; text-align: center; font-size: 2.5em; margin-bottom: 25px; width: 100%;">${finalTitle}</h2>`;
+                
+                const teacherClone = elements.teacherArea.cloneNode(true);
+                teacherClone.style.marginBottom = '30px';
+                exportContainer.appendChild(teacherClone);
+
+                const classroomClone = elements.classroom.cloneNode(true);
+                classroomClone.style.border = 'none';
+                classroomClone.style.boxShadow = 'none';
+                classroomClone.style.margin = '0';
+                classroomClone.style.width = '100%'; 
+
+                if (!isGroupView && activeLayout === 'default_grid') {
+                     classroomClone.style.display = 'grid';
+                     classroomClone.style.gridTemplateColumns = elements.classroom.style.gridTemplateColumns;
+                     classroomClone.style.gap = '25px 15px';
+                } else if (isGroupView) {
+                    classroomClone.style.display = 'grid';
+                    classroomClone.style.gridTemplateColumns = 'repeat(3, 1fr)';
+                    classroomClone.style.gap = '20px';
+                }
+
+                exportContainer.appendChild(classroomClone);
+                document.body.appendChild(exportContainer);
+                
+                const downloadFileName = `${finalTitle.replace(/[\/\\?%*:|"<>]/g, '_') || 'Classroom_Layout'}.${isPNG ? 'png' : 'pdf'}`;
+                
+                const options = { 
+                    useCORS: true, 
+                    scale: 3, 
+                    backgroundColor: '#FFFBEF',
+                    windowWidth: originalWidth + 100 
+                };
+
+                try {
+                    const canvas = await html2canvas(exportContainer, options);
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    if (isPNG) {
+                        const link = document.createElement('a');
+                        link.download = downloadFileName;
+                        link.href = imgData;
+                        link.click();
+                    } else {
+                        // Custom PDF Logic to lessen portrait size (remove empty bottom space)
+                        const imgWidth = canvas.width;
+                        const imgHeight = canvas.height;
+                        
+                        // Calculate ratio
+                        const ratio = imgHeight / imgWidth;
+                        
+                        // Use a fixed comfortable width for PDF view (e.g. 550 points)
+                        const printWidth = 550; 
+                        const printHeight = printWidth * ratio;
+
+                        const docDefinition = {
+                            // DYNAMIC PAGE SIZE: Width = fixed + margins, Height = calculated + margins
+                            pageSize: { width: printWidth + 40, height: printHeight + 40 },
+                            pageMargins: [20, 20, 20, 20],
+                            background: function() {
+                                return { canvas: [{ type: 'rect', x: 0, y: 0, w: printWidth + 40, h: printHeight + 40, color: '#FFFBEF' }] };
+                            },
+                            content: [{ 
+                                image: imgData, 
+                                width: printWidth,
+                                alignment: 'center' 
+                            }]
+                        };
+                        pdfMake.createPdf(docDefinition).download(downloadFileName);
+                    }
+                } catch (err) {
+                    console.error("Export failed:", err);
+                    alert('An error occurred during export.');
+                } finally {
+                    document.body.removeChild(exportContainer);
+                    setButtonLoadingState(button, false);
+                }
+            };
+            
+            const renderExistingGroupings = () => {
+                const list = elements.existingGroupingsList;
+                list.innerHTML = '';
+                const groupingNames = Object.keys(customGroupings);
+
+                if (groupingNames.length === 0) {
+                    list.innerHTML = '<li>No saved arrangements found.</li>';
+                    return;
+                }
+                groupingNames.forEach(name => {
+                    const li = document.createElement('li');
+                    li.className = 'group-item';
+                    li.innerHTML = `
+                        <span style="flex-grow: 1; cursor: pointer; text-decoration: underline;" title="Click to edit this arrangement">${name}</span>
+                        <button class="remove-group" data-name="${name}" aria-label="Delete arrangement ${name}">&times;</button>
+                    `;
+                    li.querySelector('span').addEventListener('click', () => {
+                        const grouping = customGroupings[name];
+                        if (grouping) {
+                            elements.arrangementName.value = grouping.name;
+                            elements.groupList.innerHTML = '';
+                            grouping.groups.forEach(g => addGroupToModal(g.name, g.seats));
+                        }
+                    });
+                    list.appendChild(li);
+                });
+            };
+
+            const handleDeleteGrouping = (e) => {
+                if (!e.target.matches('.remove-group[data-name]')) return;
+                const name = e.target.dataset.name;
+                if (confirm(`Are you sure you want to delete the "${name}" arrangement?`)) {
+                    delete customGroupings[name];
+                    localStorage.setItem('customGroupings', JSON.stringify(customGroupings));
+                    if (activeLayout === name) switchLayout('default_grid');
+                    renderExistingGroupings();
+                    updateLayoutSelector();
+                }
+            };
+
+            const openGroupingsModal = () => {
+                renderExistingGroupings();
+                elements.groupingsModal.classList.remove('hidden');
+                const currentGrouping = customGroupings[activeLayout];
+                if (currentGrouping) {
+                    elements.arrangementName.value = currentGrouping.name;
+                    elements.groupList.innerHTML = '';
+                    currentGrouping.groups.forEach(group => addGroupToModal(group.name, group.seats));
+                } else {
+                    elements.arrangementName.value = '';
+                    elements.groupList.innerHTML = '';
+                    addGroupToModal();
+                }
+            };
+
+            const addGroupToModal = (nameParam, seatsParam) => {
+                const initialName = typeof nameParam === 'string' ? nameParam : '';
+                const initialSeats = typeof seatsParam === 'number' ? seatsParam : 4;
+                const li = document.createElement('li');
+                li.className = 'group-item';
+                li.innerHTML = `
+                    <input type="text" placeholder="Group Name" class="group-name-input" value="${initialName}" style="flex: 2;">
+                    <input type="number" placeholder="Seats" class="group-seats-input" min="1" value="${initialSeats}" style="flex: 1;">
+                    <button class="remove-group">&times;</button>
+                `;
+                li.querySelector('.remove-group').addEventListener('click', () => li.remove());
+                elements.groupList.appendChild(li);
+            };
+            
+            const saveGrouping = () => {
+                const name = elements.arrangementName.value.trim();
+                if (!name) return alert('Please enter an arrangement name.');
+                if (name === 'default_grid') return alert('"default_grid" is a reserved name. Please choose another.');
+                const groups = [];
+                document.querySelectorAll('#groupList .group-item').forEach(item => {
+                    const groupName = item.querySelector('.group-name-input').value.trim();
+                    const groupSeats = parseInt(item.querySelector('.group-seats-input').value, 10);
+                    if (groupName && groupSeats > 0) groups.push({ name: groupName, seats: groupSeats });
+                });
+                if (groups.length === 0) return alert('Please add at least one valid group.');
+                customGroupings[name] = { name, groups };
+                localStorage.setItem('customGroupings', JSON.stringify(customGroupings));
+                activeLayout = name;
+                updateLayoutSelector();
+                switchLayout(name);
+                elements.groupingsModal.classList.add('hidden');
+            };
+
+            elements.applyGrid.addEventListener('click', () => {
+                const input = elements.gridPattern.value.trim();
+                const parts = input.split(/[\s,]+/).map(n => parseInt(n, 10)).filter(n => n > 0);
+                if (parts.length > 0) {
+                    gridConfig = parts;
+                    switchLayout('default_grid');
+                } else {
+                    alert("Please enter valid numbers separated by spaces (e.g., '2 2' or '3 3 3')");
+                }
+            });
+
+            // --- Event Listeners ---
+            elements.generateSeats.addEventListener('click', generateRandomSeating);
+            elements.alternateSeats.addEventListener('click', generateAlternateSeating);
+            elements.customizeProfiles.addEventListener('click', openCustomizeModal);
+            elements.demoSelector.addEventListener('change', (e) => { const demoData = DEMO_SECTIONS[e.target.value]; if (demoData) loadDemoSection(demoData.name, demoData.seed); e.target.value = ""; });
+            
+            elements.saveLayout.addEventListener('click', openSaveLoadModal);
+            elements.loadLayout.addEventListener('click', openSaveLoadModal);
+            elements.confirmSaveBtn.addEventListener('click', saveCurrentLayout);
+            elements.saveLoadModalClose.addEventListener('click', () => elements.saveLoadModal.classList.add('hidden'));
+
+            elements.exportPNG.addEventListener('click', () => exportToFile(true));
+            elements.exportPDF.addEventListener('click', () => exportToFile(false));
+            elements.modalClose.addEventListener('click', () => elements.customizeModal.classList.add('hidden'));
+            elements.profileCustomizerList.addEventListener('change', handleProfileImageUpload);
+            elements.addConstraintBtn.addEventListener('click', addConstraintPair);
+            elements.manageGroupingsBtn.addEventListener('click', openGroupingsModal);
+            elements.groupingsModalClose.addEventListener('click', () => elements.groupingsModal.classList.add('hidden'));
+            elements.addGroupBtn.addEventListener('click', addGroupToModal);
+            elements.saveGroupingBtn.addEventListener('click', saveGrouping);
+            elements.layoutSelector.addEventListener('change', (e) => switchLayout(e.target.value));
+            elements.existingGroupingsList.addEventListener('click', handleDeleteGrouping);
+
+            // --- Updated Clear Button Logic (Full Reset) ---
+            elements.clearStudentList.addEventListener('click', () => {
+                if(confirm('Reset the entire classroom planner? This will refresh the page and clear unsaved data.')) {
+                    window.location.reload();
+                }
+            });
+
+            updateUIMode(); updateLayoutSelector(); renderLayout(); renderConstraints();
+        });
+    </script>
+</body>
+</html>
