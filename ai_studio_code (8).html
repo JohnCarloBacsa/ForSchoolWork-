@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Survey</title>
+  <style>
+    /* 1. Base Setup & Background */
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      /* Replaced the missing camera.jpg with a modern gradient and high-quality movie-themed background */
+      background: linear-gradient(rgba(30, 60, 114, 0.8), rgba(42, 82, 152, 0.8)), 
+                  url('https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* 2. Main Form Card Container */
+    .survey-container {
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      max-width: 500px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    h3 {
+      text-align: center;
+      color: #1e3c72;
+      margin-top: 0;
+      font-size: 2rem;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+
+    /* 3. Form Inputs & Labels */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #444;
+      font-size: 0.95rem;
+    }
+
+    /* Style text fields, dropdowns, and textareas uniformly */
+    input[type="text"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    /* Add focus rings so the user knows what they are typing in */
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #1e3c72;
+      box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.15);
+    }
+
+    /* 4. Radio Buttons and Checkboxes */
+    .choices-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .choice-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    /* 5. Buttons */
+    .buttons-container {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    input[type="submit"],
+    input[type="reset"] {
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.1s;
+      flex: 1; /* Makes both buttons take equal space */
+    }
+
+    input[type="submit"] {
+      background-color: #1e3c72;
+      color: white;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #152b52;
+    }
+
+    input[type="reset"] {
+      background-color: #f1f1f1;
+      color: #555;
+    }
+
+    input[type="reset"]:hover {
+      background-color: #e2e2e2;
+    }
+
+    input[type="submit"]:active,
+    input[type="reset"]:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="survey-container">
+    <h3>🎬 Movie Survey</h3>
+    
+    <!-- Changed enctype to text/plain to format the email output slightly better -->
+    <form action="mailto:minari08@hotmail.com" method="post" enctype="text/plain">
+      
+      <div class="form-group">
+        <label for="firstname">First Name</label>
+        <input type="text" id="firstname" name="firstname" placeholder="John" />
+      </div>
+
+      <div class="form-group">
+        <label for="lastname">Surname</label>
+        <input type="text" id="lastname" name="lastname" placeholder="Doe" />
+      </div>
+
+      <div class="form-group">
+        <label for="location">City or Town</label>
+        <input type="text" id="location" name="location" placeholder="e.g. New York" />
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Cell Phone Number</label>
+        <input type="text" id="phone" name="phone" maxlength="11" placeholder="01234567890" />
+      </div>
+
+      <div class="form-group">
+        <label for="email">E-mail Address</label>
+        <!-- Changed to type="email" to enable native email validation -->
+        <input type="email" id="email" name="email" placeholder="john.doe@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label for="age">What is your age group?</label>
+        <select id="age" name="age">
+          <option value="teenager">Younger than 20</option>
+          <option value="youngperson">Between 21 and 35</option>
+          <option value="middleaged">Older than 36</option>
+          <option value="noanswer" selected>Prefer not to say</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>What type of movie do you mostly prefer to watch?</label>
+        <div class="choices-group">
+          <label class="choice-item"><input type="radio" name="movietype" value="action" /> Action</label>
+          <label class="choice-item"><input type="radio" name="movietype" value="comedy" /> Comedy</label>
+          <label class="choice-item"><input type="radio" name="movietype" value="drama" /> Drama</label>
+          <label class="choice-item"><input type="radio" name="movietype" value="none" checked /> None of these</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Where do you watch movies? Select all that apply.</label>
+        <div class="choices-group">
+          <label class="choice-item"><input type="checkbox" name="cinema" value="cinema" /> Cinema</label>
+          <label class="choice-item"><input type="checkbox" name="home" value="home" /> Home</label>
+          <label class="choice-item"><input type="checkbox" name="computer" value="computer" /> Computer</label>
+          <label class="choice-item"><input type="checkbox" name="donotwatch" value="donotwatch" checked /> Don't watch</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="comments">Comments:</label>
+        <!-- Moved default text into the placeholder attribute -->
+        <textarea id="comments" name="comments" rows="5" placeholder="Please provide any additional comments. Thank you."></textarea>
+      </div>
+
+      <div class="buttons-container">
+        <input type="submit" value="Send Data" />
+        <input type="reset" value="Clear All" />
+      </div>
+
+    </form>
+  </div>
+
+</body>
+</html>
